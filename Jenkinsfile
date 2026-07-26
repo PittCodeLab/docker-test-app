@@ -6,7 +6,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t docker-test-app .'
+                sh 'docker build -t docker-test-app:${BUILD_NUMBER} .'
             }
         }
 
@@ -15,10 +15,11 @@ pipeline {
                 sh '''
                 docker stop docker-test-container || true
                 docker rm docker-test-container || true
+
                 docker run -d \
                 --name docker-test-container \
                 -p 8081:80 \
-                docker-test-app
+                docker-test-app:${BUILD_NUMBER}
                 '''
             }
         }
