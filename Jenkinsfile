@@ -51,4 +51,19 @@ pipeline {
             }
         }
     }
+
+    post {
+
+    success {
+        echo "Docker container started successfully"
+    }
+
+    failure {
+        echo "Docker container failed to start"
+    }
+
+    always {
+        echo "Pipeline finished"
+    }
+}
 }
