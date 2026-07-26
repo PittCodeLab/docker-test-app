@@ -3,67 +3,125 @@ pipeline {
     agent any
 
     environment {
-    IMAGE_NAME = 'docker-test-app'
-    DOCKERHUB_USERNAME = 'odocks'
-}
+
+        IMAGE_NAME = 'docker-test-app'
+        DOCKERHUB_USERNAME = 'odocks'
+
+        IMAGE_TAG = "${BUILD_NUMBER}"
+
+        DOCKER_IMAGE = "${DOCKERHUB_USERNAME}/${IMAGE_NAME}"
+    }
+
 
     stages {
 
+
         stage('Build Docker Image') {
+
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} .'
+
+                sh '''
+                docker build \
+                -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
 
-        
+
         stage('Push Docker Image') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'dockerhub',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-            )
-        ]) {
 
-            sh '''
-            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+            steps {
 
-            docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${BUILD_NUMBER}
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )
+                ]) {
 
-            docker push ${DOCKERHUB_USERNAME}/${IMAGE_NAME}:${BUILD_NUMBER}
-            '''
+
+                    sh '''
+                    echo "$DOCKER_PASS" | docker login \
+                    -u "$DOCKER_USER" \
+                    --password-stdin
+
+
+                    docker tag \
+                    ${IMAGE_NAME}:${IMAGE_TAG} \
+                    ${DOCKER_IMAGE}:${IMAGE_TAG}
+
+
+                    docker push \
+                    ${DOCKER_IMAGE}:${IMAGE_TAG}
+                    '''
+                }
+            }
         }
-    }
-}
+
+
 
         stage('Run Docker Container') {
+
             steps {
+
                 sh '''
+
                 docker stop docker-test-container || true
+
                 docker rm docker-test-container || true
+
 
                 docker run -d \
                 --name docker-test-container \
                 -p 8081:80 \
-                ${IMAGE_NAME}:${BUILD_NUMBER}
+                ${IMAGE_NAME}:${IMAGE_TAG}
+
                 '''
             }
         }
+
+
+
+        stage('Docker Cleanup') {
+
+            steps {
+
+                sh '''
+
+                docker image prune -f
+
+                '''
+            }
+        }
+
     }
+
+
 
     post {
 
-    always {
-        echo "Pipeline finished"
+
+        success {
+
+            echo "Pipeline completed successfully"
+
+        }
+
+
+        failure {
+
+            echo "Pipeline failed"
+
+        }
+
+
+        always {
+
+            echo "Pipeline finished"
+
+        }
+
     }
 
-    success {
-        echo "Pipeline completed successfully"
-    }
-
-    failure {
-        echo "Pipeline failed. Check logs."
-    }
-}
 }
