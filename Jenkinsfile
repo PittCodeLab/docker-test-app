@@ -13,9 +13,12 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .'
+                sh '''
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
             }
         }
+
 
         stage('Push Docker Image') {
             steps {
@@ -38,6 +41,7 @@ pipeline {
             }
         }
 
+
         stage('Run Docker Container') {
             steps {
                 sh '''
@@ -52,19 +56,33 @@ pipeline {
             }
         }
 
+
         stage('Docker Cleanup') {
             steps {
                 sh '''
-                docker image prune -f
+                echo "Cleaning unused Docker resources..."
+
+                # Remove dangling images
+                docker image prune -f || true
+
+
+                echo "Keeping latest 5 docker-test-app images..."
 
                 docker images ${IMAGE_NAME} \
-                --format "{{.ID}}" \
+                --format "{{.Repository}}:{{.Tag}}" \
+                | grep -v latest \
+                | sort -r \
                 | tail -n +6 \
-                | xargs -r docker rmi
+                | xargs -r docker rmi -f || true
+
+
+                echo "Docker cleanup completed"
                 '''
             }
         }
+
     }
+
 
     post {
 
@@ -79,5 +97,7 @@ pipeline {
         always {
             echo "Pipeline finished"
         }
+
     }
+
 }
