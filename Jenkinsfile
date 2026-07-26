@@ -54,16 +54,16 @@ pipeline {
 
     post {
 
+    always {
+        echo "Pipeline finished"
+    }
+
     success {
-        echo "Docker container started successfully"
+        echo "Pipeline completed successfully"
     }
 
     failure {
-        echo "Docker container failed to start"
-    }
-
-    always {
-        echo "Pipeline finished"
+        echo "Pipeline failed. Check logs."
     }
 }
 }
